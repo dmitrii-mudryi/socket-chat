@@ -51,6 +51,10 @@
         #privateMessage {
             width: 100%;
         }
+        #typingIndicator {
+            font-style: italic;
+            color: #888;
+        }
     </style>
 </head>
 <body>
@@ -63,6 +67,7 @@
                 <div id="users-list"></div>
             </div>
             <div id="chat"></div>
+            <div id="typingIndicator"></div>
             <div class="input-group mt-3">
                 <input type="text" id="username" class="form-control" placeholder="Enter your name">
                 <div class="input-group-append">
@@ -70,7 +75,7 @@
                 </div>
             </div>
             <div class="input-group mt-3">
-                <input type="text" id="message" class="form-control" placeholder="Enter your message" disabled>
+                <input type="text" id="message" class="form-control" placeholder="Enter your message" disabled oninput="handleTyping(true)" onblur="handleTyping(false)">
                 <div class="input-group-append">
                     <button class="btn btn-success" onclick="sendMessage()" disabled>Send</button>
                 </div>
@@ -90,6 +95,7 @@
     var stompClient = null;
     var username = null;
     var privateRecipient = null;
+    var typingTimer = null;
 
     function connect() {
         username = document.getElementById('username').value.trim();
@@ -121,6 +127,12 @@
                 showPrivateMessage(message);
             });
 
+            // Subscribe to typing indicator
+            stompClient.subscribe('/topic/typing', function (typingStatus) {
+                var status = JSON.parse(typingStatus.body);
+                handleTypingIndicator(status.username, status.typing);
+            });
+
             stompClient.send("/app/chat.addUser",
                 {},
                 JSON.stringify({sender: username, type: 'JOIN'})
@@ -144,6 +156,7 @@
             };
             stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
             document.getElementById('message').value = '';
+            handleTyping(false);
         }
     }
 
@@ -160,6 +173,30 @@
             stompClient.send("/app/chat.sendPrivateMessage", {}, JSON.stringify(chatMessage));
             document.getElementById('privateMessage').value = '';
             hidePrivateMessageForm();
+        }
+    }
+
+    function handleTyping(isTyping) {
+        if (typingTimer) {
+            clearTimeout(typingTimer);
+        }
+
+        if (isTyping) {
+            stompClient.send("/app/chat.typing", {}, JSON.stringify({username: username, typing: true}));
+            typingTimer = setTimeout(function () {
+                stompClient.send("/app/chat.typing", {}, JSON.stringify({username: username, typing: false}));
+            }, 3000);
+        } else {
+            stompClient.send("/app/chat.typing", {}, JSON.stringify({username: username, typing: false}));
+        }
+    }
+
+    function handleTypingIndicator(user, isTyping) {
+        var typingIndicator = document.getElementById('typingIndicator');
+        if (isTyping) {
+            typingIndicator.textContent = user + " is typing...";
+        } else {
+            typingIndicator.textContent = "";
         }
     }
 

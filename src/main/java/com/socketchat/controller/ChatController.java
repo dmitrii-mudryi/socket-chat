@@ -3,6 +3,7 @@ package com.socketchat.controller;
 // File: ChatController.java
 
 import com.socketchat.message.ChatMessage;
+import com.socketchat.message.TypingStatus;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -65,5 +66,10 @@ public class ChatController {
     public void sendPrivateMessage(ChatMessage chatMessage) {
         String recipient = chatMessage.getRecipient();
         messagingTemplate.convertAndSendToUser(recipient, "/queue/private", chatMessage);
+    }
+
+    @MessageMapping("/chat.typing")
+    public void sendTypingNotification(TypingStatus typingStatus) {
+        messagingTemplate.convertAndSend("/topic/typing", typingStatus);
     }
 }
