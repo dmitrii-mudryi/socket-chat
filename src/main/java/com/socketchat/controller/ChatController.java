@@ -3,6 +3,7 @@ package com.socketchat.controller;
 // File: ChatController.java
 
 import com.socketchat.message.ChatMessage;
+import com.socketchat.message.ReadReceipt;
 import com.socketchat.message.TypingStatus;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -11,6 +12,7 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Controller
@@ -26,6 +28,7 @@ public class ChatController {
     @MessageMapping("/chat.sendMessage")
     @SendTo("/topic/public")
     public ChatMessage sendMessage(ChatMessage chatMessage) {
+        chatMessage.setId(UUID.randomUUID().toString());
         return chatMessage;
     }
 
@@ -71,5 +74,10 @@ public class ChatController {
     @MessageMapping("/chat.typing")
     public void sendTypingNotification(TypingStatus typingStatus) {
         messagingTemplate.convertAndSend("/topic/typing", typingStatus);
+    }
+
+    @MessageMapping("/chat.sendReadReceipt")
+    public void sendReadReceipt(ReadReceipt readReceipt) {
+        messagingTemplate.convertAndSendToUser(readReceipt.getSender(), "/queue/read-receipt", readReceipt);
     }
 }

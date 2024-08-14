@@ -54,6 +54,8 @@
         #typingIndicator {
             font-style: italic;
             color: #888;
+            display: block;
+            min-height: 25px;
         }
     </style>
 </head>
@@ -133,6 +135,11 @@
                 handleTypingIndicator(status.username, status.typing);
             });
 
+            stompClient.subscribe('/user/' + username + '/queue/read-receipt', function (receiptOutput) {
+                var receipt = JSON.parse(receiptOutput.body);
+                showReadReceipt(receipt);
+            });
+
             stompClient.send("/app/chat.addUser",
                 {},
                 JSON.stringify({sender: username, type: 'JOIN'})
@@ -205,8 +212,39 @@
         var messageElement = document.createElement('div');
         messageElement.classList.add('chat-message');
         messageElement.textContent = message.sender + ": " + message.content;
+        messageElement.dataset.messageId = message.id; // Assuming message has an id field
+        messageElement.addEventListener('click', function() {
+            sendReadReceipt(message.id, message.sender);
+        });
         chat.appendChild(messageElement);
         chat.scrollTop = chat.scrollHeight;
+    }
+
+    function sendReadReceipt(messageId, sender) {
+        if (stompClient) {
+            var readReceipt = {
+                messageId: messageId,
+                sender: sender,
+                recipient: username,
+                timestamp: new Date().toISOString()
+            };
+            stompClient.send("/app/chat.sendReadReceipt", {}, JSON.stringify(readReceipt));
+        }
+    }
+
+    function showReadReceipt(receipt) {
+        var chat = document.getElementById('chat');
+        var messageElements = chat.getElementsByClassName('chat-message');
+        for (var i = 0; i < messageElements.length; i++) {
+            if (messageElements[i].dataset.messageId === receipt.messageId) {
+                var receiptElement = document.createElement('div');
+                receiptElement.classList.add('read-receipt');
+                receiptElement.style.fontSize = 'small'; // Set font size to small
+                receiptElement.textContent = "Read by " + receipt.recipient + " at " + new Date(receipt.timestamp).toLocaleTimeString();
+                messageElements[i].appendChild(receiptElement);
+                break;
+            }
+        }
     }
 
     function showPrivateMessage(message) {

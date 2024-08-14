@@ -3,6 +3,7 @@ package com.socketchat.message;
 import java.util.List;
 
 public class ChatMessage {
+    private String id;
     private MessageType type;
     private String content;
     private String sender;
@@ -13,6 +14,14 @@ public class ChatMessage {
         CHAT,
         JOIN,
         LEAVE
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public MessageType getType() {
