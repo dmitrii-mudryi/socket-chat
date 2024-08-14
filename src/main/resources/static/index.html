@@ -33,6 +33,24 @@
             font-style: italic;
             color: #888;
         }
+        .chat-message.private {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .user-item {
+            cursor: pointer;
+            margin-bottom: 5px;
+            padding: 5px;
+            border: 1px solid transparent;
+            border-radius: 3px;
+        }
+        .user-item:hover {
+            background-color: #e9ecef;
+            border-color: #ddd;
+        }
+        #privateMessage {
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -57,6 +75,13 @@
                     <button class="btn btn-success" onclick="sendMessage()" disabled>Send</button>
                 </div>
             </div>
+            <!-- Private message form -->
+            <div id="privateMessageForm" class="input-group mt-3" style="display: none;">
+                <input type="text" id="privateMessage" class="form-control" placeholder="Enter your private message">
+                <div class="input-group-append">
+                    <button class="btn btn-info" onclick="sendPrivateMessage()">Send Private</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -64,6 +89,7 @@
 <script type="text/javascript">
     var stompClient = null;
     var username = null;
+    var privateRecipient = null;
 
     function connect() {
         username = document.getElementById('username').value.trim();
@@ -87,6 +113,12 @@
                     }
                     showSystemMessage(message.sender + ' ' + (message.type === 'JOIN' ? 'joined' : 'left') + ' the chat');
                 }
+            });
+
+            // Subscribe to the private message channel
+            stompClient.subscribe('/user/' + username + '/queue/private', function (messageOutput) {
+                var message = JSON.parse(messageOutput.body);
+                showPrivateMessage(message);
             });
 
             stompClient.send("/app/chat.addUser",
@@ -115,11 +147,36 @@
         }
     }
 
+    function sendPrivateMessage() {
+        var messageContent = document.getElementById('privateMessage').value.trim();
+
+        if (messageContent && stompClient && privateRecipient) {
+            var chatMessage = {
+                sender: username,
+                recipient: privateRecipient,
+                content: messageContent,
+                type: 'CHAT'
+            };
+            stompClient.send("/app/chat.sendPrivateMessage", {}, JSON.stringify(chatMessage));
+            document.getElementById('privateMessage').value = '';
+            hidePrivateMessageForm();
+        }
+    }
+
     function showMessage(message) {
         var chat = document.getElementById('chat');
         var messageElement = document.createElement('div');
         messageElement.classList.add('chat-message');
         messageElement.textContent = message.sender + ": " + message.content;
+        chat.appendChild(messageElement);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    function showPrivateMessage(message) {
+        var chat = document.getElementById('chat');
+        var messageElement = document.createElement('div');
+        messageElement.classList.add('chat-message', 'private');
+        messageElement.textContent = "(Private) " + message.sender + ": " + message.content;
         chat.appendChild(messageElement);
         chat.scrollTop = chat.scrollHeight;
     }
@@ -136,11 +193,34 @@
     function updateUsers(users) {
         var usersList = document.getElementById('users-list');
         usersList.innerHTML = '';
+
         users.forEach(function (user) {
             var userElement = document.createElement('div');
+            userElement.classList.add('user-item');
             userElement.textContent = user;
+
+            // Add click event to enable private messaging
+            userElement.addEventListener('click', function() {
+                if (user !== username) {
+                    privateRecipient = user;
+                    showPrivateMessageForm(user);
+                }
+            });
+
             usersList.appendChild(userElement);
         });
+    }
+
+    function showPrivateMessageForm(recipient) {
+        var privateMessageForm = document.getElementById('privateMessageForm');
+        privateMessageForm.style.display = 'block';
+        document.getElementById('privateMessage').placeholder = "Message to " + recipient;
+    }
+
+    function hidePrivateMessageForm() {
+        var privateMessageForm = document.getElementById('privateMessageForm');
+        privateMessageForm.style.display = 'none';
+        privateRecipient = null;
     }
 
     function disconnect() {

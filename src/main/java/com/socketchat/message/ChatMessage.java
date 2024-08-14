@@ -7,6 +7,7 @@ public class ChatMessage {
     private String content;
     private String sender;
     private List<String> userList;
+    private String recipient;
 
     public enum MessageType {
         CHAT,
@@ -44,5 +45,13 @@ public class ChatMessage {
 
     public void setUserList(List<String> userList) {
         this.userList = userList;
+    }
+
+    public String getRecipient() {
+        return recipient;
+    }
+
+    public void setRecipient(String recipient) {
+        this.recipient = recipient;
     }
 }

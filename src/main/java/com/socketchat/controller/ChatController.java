@@ -1,8 +1,11 @@
 package com.socketchat.controller;
 
+// File: ChatController.java
+
 import com.socketchat.message.ChatMessage;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
@@ -12,8 +15,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Controller
 public class ChatController {
 
-    // Thread-safe list to hold connected users
+    private final SimpMessagingTemplate messagingTemplate;
     private List<String> connectedUsers = new CopyOnWriteArrayList<>();
+
+    public ChatController(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
+    }
 
     @MessageMapping("/chat.sendMessage")
     @SendTo("/topic/public")
@@ -25,18 +32,13 @@ public class ChatController {
     @SendTo("/topic/public")
     public ChatMessage addUser(ChatMessage chatMessage, SimpMessageHeaderAccessor headerAccessor) {
         String username = chatMessage.getSender();
+        connectedUsers.add(username);
+        headerAccessor.getSessionAttributes().put("username", username);
 
-        // Add user to the list if not already present
-        if (username != null && !connectedUsers.contains(username)) {
-            connectedUsers.add(username);
-            headerAccessor.getSessionAttributes().put("username", username);
-        }
-
-        // Create a new ChatMessage for the join event
         ChatMessage joinMessage = new ChatMessage();
         joinMessage.setType(ChatMessage.MessageType.JOIN);
         joinMessage.setSender(username);
-        joinMessage.setUserList(connectedUsers);  // Set the userList
+        joinMessage.setUserList(connectedUsers);
 
         return joinMessage;
     }
@@ -49,14 +51,19 @@ public class ChatController {
         if (username != null) {
             connectedUsers.remove(username);
 
-            // Create a new ChatMessage for the leave event
             ChatMessage leaveMessage = new ChatMessage();
             leaveMessage.setType(ChatMessage.MessageType.LEAVE);
             leaveMessage.setSender(username);
-            leaveMessage.setUserList(connectedUsers);  // Set the userList
+            leaveMessage.setUserList(connectedUsers);
 
             return leaveMessage;
         }
         return null;
+    }
+
+    @MessageMapping("/chat.sendPrivateMessage")
+    public void sendPrivateMessage(ChatMessage chatMessage) {
+        String recipient = chatMessage.getRecipient();
+        messagingTemplate.convertAndSendToUser(recipient, "/queue/private", chatMessage);
     }
 }
