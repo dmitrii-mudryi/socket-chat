@@ -9,6 +9,7 @@ public class ChatMessage {
     private String sender;
     private List<String> userList;
     private String recipient;
+    private ReadReceipt readReceipt;
 
     public enum MessageType {
         CHAT,
@@ -62,5 +63,13 @@ public class ChatMessage {
 
     public void setRecipient(String recipient) {
         this.recipient = recipient;
+    }
+
+    public ReadReceipt getReadReceipt() {
+        return readReceipt;
+    }
+
+    public void setReadReceipt(ReadReceipt readReceipt) {
+        this.readReceipt = readReceipt;
     }
 }

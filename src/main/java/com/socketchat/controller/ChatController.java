@@ -78,6 +78,7 @@ public class ChatController {
 
     @MessageMapping("/chat.sendReadReceipt")
     public void sendReadReceipt(ReadReceipt readReceipt) {
+        readReceipt.setRecipient(readReceipt.getSender());
         messagingTemplate.convertAndSendToUser(readReceipt.getSender(), "/queue/read-receipt", readReceipt);
     }
 }
