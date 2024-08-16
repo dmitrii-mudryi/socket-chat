@@ -4,6 +4,9 @@ Spring Boot WebSocket Chat Application
 
 ## Demo Video
 
+[![Watch the video](https://img.youtube.com/vi/qmYRLDYK-lI/maxresdefault.jpg)](https://youtu.be/qmYRLDYK-lI)
+
+
 ## Description
 
 This project is a real-time chat application built using Spring Boot and WebSocket. It allows users to join a chat room, send messages, receive read receipts, and see typing indicators. The application also supports private messaging between users.
